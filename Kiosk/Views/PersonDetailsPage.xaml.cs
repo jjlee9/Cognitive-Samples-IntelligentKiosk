@@ -54,6 +54,7 @@ using Windows.UI.Xaml.Navigation;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.Storage;
 using ServiceHelpers;
+using System.Diagnostics;
 
 namespace IntelligentKioskSample.Views
 {
@@ -124,6 +125,8 @@ namespace IntelligentKioskSample.Views
             this.progressControl.IsActive = true;
 
             this.trainingImageCollectorFlyout.Hide();
+            Stopwatch stopWatch = new Stopwatch();
+            stopWatch.Start();
 
             bool foundError = false;
             Exception lastError = null;
@@ -156,10 +159,17 @@ namespace IntelligentKioskSample.Views
                     lastError = e;
                 }
             }
+            stopWatch.Stop();
 
             if (foundError)
             {
+                TotalUploadFacesTime.Text = "";
                 await Util.GenericApiCallExceptionHandler(lastError, "Failure adding one or more of the faces");
+            }
+            else
+            {
+                TotalUploadFacesTime.Text =
+                    String.Format("The total upload time is {0} secs!", stopWatch.Elapsed);
             }
 
             await this.LoadPersonFacesFromService();

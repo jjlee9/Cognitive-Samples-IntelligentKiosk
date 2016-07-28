@@ -90,6 +90,7 @@
                 <TextBlock Text="- Start by creating a new person on this page ('+' near the top), or select an existing person to navigate to it." Style="{StaticResource CaptionTextBlockStyle}" />
                 <TextBlock Text="- When you are done making modifications to this group, click on the Train button to re-train the Machine Learning model in the Cloud." Style="{StaticResource CaptionTextBlockStyle}" />
                 <TextBlock Text="- You can also add people in batches ('...' near the top), either from local photo albums or from Bing Image searches." Style="{StaticResource CaptionTextBlockStyle}" />
+                <TextBlock x:Name="TotalTrainingTime"  Text="" Style="{StaticResource CaptionTextBlockStyle}" />
             </StackPanel>
         </StackPanel>
 

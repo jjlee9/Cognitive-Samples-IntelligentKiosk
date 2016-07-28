@@ -63,6 +63,7 @@
                 <TextBlock Text="- This is where you can provide sample faces for a particular person, or remove this person from the training set if you need to." Style="{StaticResource CaptionTextBlockStyle}" />
                 <TextBlock Text="- Start by adding face samples ('+' near the top), or right click on an existing sample to remove it." Style="{StaticResource CaptionTextBlockStyle}" />
                 <TextBlock Text="- You can provide sample photos from Bing Images or Local Files. Just select the desired photos and confirm." Style="{StaticResource CaptionTextBlockStyle}" />
+                <TextBlock x:Name="TotalUploadFacesTime"  Text="" Style="{StaticResource CaptionTextBlockStyle}" />
             </StackPanel>
         </StackPanel>
 

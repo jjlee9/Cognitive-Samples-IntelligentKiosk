@@ -56,6 +56,7 @@ using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
+using System.Diagnostics;
 
 namespace IntelligentKioskSample.Views
 {
@@ -193,6 +194,8 @@ namespace IntelligentKioskSample.Views
         {
             this.progressControl.IsActive = true;
 
+            Stopwatch stopWatch = new Stopwatch();
+            stopWatch.Start();
             TrainingStatus trainingStatus = null;
             try
             {
@@ -213,12 +216,19 @@ namespace IntelligentKioskSample.Views
             {
                 await Util.GenericApiCallExceptionHandler(ex, "Failure requesting training");
             }
+            stopWatch.Stop();
 
             this.progressControl.IsActive = false;
 
             if (trainingStatus.Status != Status.Succeeded)
             {
+                TotalTrainingTime.Text = "";
                 await new MessageDialog("Training finished with failure.").ShowAsync();
+            }
+            else
+            {
+                TotalTrainingTime.Text =
+                    String.Format("The total training time is {0} secs!", stopWatch.Elapsed);
             }
         }
 
@@ -228,6 +238,10 @@ namespace IntelligentKioskSample.Views
             this.commandBar.IsOpen = false;
 
             this.progressControl.IsActive = true;
+
+            Stopwatch stopWatch = new Stopwatch();
+            stopWatch.Start();
+            bool foundError = false;
 
             try
             {
@@ -271,7 +285,19 @@ namespace IntelligentKioskSample.Views
             }
             catch (Exception ex)
             {
+                foundError = true;
                 await Util.GenericApiCallExceptionHandler(ex, "Failure during batch processing");
+            }
+            stopWatch.Stop();
+
+            if (foundError)
+            {
+                TotalTrainingTime.Text = "";
+            }
+            else
+            {
+                TotalTrainingTime.Text =
+                    String.Format("The total upload and training time is {0} secs!", stopWatch.Elapsed);
             }
 
             this.progressControl.IsActive = false;
@@ -314,6 +340,8 @@ namespace IntelligentKioskSample.Views
 
             this.progressControl.IsActive = true;
 
+            Stopwatch stopWatch = new Stopwatch();
+            stopWatch.Start();
             List<string> errors = new List<string>();
 
             try
@@ -360,10 +388,17 @@ namespace IntelligentKioskSample.Views
             {
                 await Util.GenericApiCallExceptionHandler(ex, "Failure processing the folder and files");
             }
+            stopWatch.Stop();
 
             if (errors.Any())
             {
+                TotalTrainingTime.Text = "";
                 await new MessageDialog(string.Join("\n", errors), "Failure importing the folllowing photos").ShowAsync();
+            }
+            else
+            {
+                TotalTrainingTime.Text =
+                    String.Format("The total upload and training time is {0} secs!", stopWatch.Elapsed);
             }
 
             this.progressControl.IsActive = false;
