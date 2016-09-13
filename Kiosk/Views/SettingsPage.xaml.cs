@@ -32,22 +32,11 @@
 // 
 
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
 using Windows.Storage;
-using Windows.Storage.Pickers;
 using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Controls.Primitives;
-using Windows.UI.Xaml.Data;
-using Windows.UI.Xaml.Input;
-using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=234238
@@ -95,34 +84,9 @@ namespace IntelligentKioskSample.Views
             }
         }
 
-        private async void OnEraseRealtimeDataClicked(object sender, RoutedEventArgs e)
+        private void ResetMallKioskSettingsButtonClick(object sender, RoutedEventArgs e)
         {
-            var rootFolder = await ApplicationData.Current.LocalFolder.TryGetItemAsync("RealTimeDemo") as IStorageFolder;
-            if (rootFolder != null)
-            {
-                foreach (var item in await rootFolder.GetItemsAsync())
-                {
-                    try
-                    {
-                        await item.DeleteAsync();
-                    }
-                    catch
-                    { }
-                }
-            }
-        }
-
-        private async void OnOpenUniqueFacesFolder(object sender, RoutedEventArgs e)
-        {
-            var rootFolder = await ApplicationData.Current.LocalFolder.TryGetItemAsync("RealTimeDemo\\UniqueFaces") as IStorageFolder;
-            if (rootFolder != null)
-            {
-                await Windows.System.Launcher.LaunchFolderAsync(rootFolder);
-            }
-            else
-            {
-                await new MessageDialog("Unique face storage folder not present. Make sure you have enabled the storage of unique faces and run the Realtime Kiosk.").ShowAsync();
-            }
+            SettingsHelper.Instance.RestoreMallKioskSettingsToDefaultFile();
         }
     }
 }

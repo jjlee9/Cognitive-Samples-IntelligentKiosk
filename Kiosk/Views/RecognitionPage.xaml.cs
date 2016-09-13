@@ -47,7 +47,7 @@ namespace IntelligentKioskSample.Views
     /// <summary>
     /// An empty page that can be used on its own or navigated to within a Frame.
     /// </summary>
-    [KioskExperience(Title = "Face API Playground", ImagePath = "ms-appx:/Assets/FaceAPI.png", ExperienceType = ExperienceType.Other)]
+    [KioskExperience(Title = "Face API Explorer", ImagePath = "ms-appx:/Assets/FaceAPI.png", ExperienceType = ExperienceType.Other)]
     public sealed partial class RecognitionPage : Page
     {
         public RecognitionPage()
@@ -81,7 +81,13 @@ namespace IntelligentKioskSample.Views
             base.OnNavigatingFrom(e);
         }
 
-        private void OnImageSearchCompleted(object sender, IEnumerable<ImageAnalyzer> args)
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
+        {
+            await this.StartWebCameraAsync();
+            base.OnNavigatedTo(e);
+        }
+
+        private async void OnImageSearchCompleted(object sender, IEnumerable<ImageAnalyzer> args)
         {
             this.imageSearchFlyout.Hide();
             ImageAnalyzer image = args.First();
@@ -89,6 +95,7 @@ namespace IntelligentKioskSample.Views
 
             this.imageWithFacesControl.Visibility = Visibility.Visible;
             this.webCamHostGrid.Visibility = Visibility.Collapsed;
+            await this.cameraControl.StopStreamAsync();
 
             this.imageWithFacesControl.DataContext = image;
         }
@@ -99,6 +106,11 @@ namespace IntelligentKioskSample.Views
         }
 
         private async void OnWebCamButtonClicked(object sender, RoutedEventArgs e)
+        {
+            await StartWebCameraAsync();
+        }
+
+        private async Task StartWebCameraAsync()
         {
             webCamHostGrid.Visibility = Visibility.Visible;
             imageWithFacesControl.Visibility = Visibility.Collapsed;

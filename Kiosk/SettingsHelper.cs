@@ -33,6 +33,7 @@
 
 using System;
 using System.ComponentModel;
+using System.IO;
 using Windows.Storage;
 
 namespace IntelligentKioskSample
@@ -69,9 +70,27 @@ namespace IntelligentKioskSample
             }
         }
 
-        private void OnSettingChanged(string propertyName, object value)
+        private async void OnSettingChanged(string propertyName, object value)
         {
-            ApplicationData.Current.RoamingSettings.Values[propertyName] = value;
+            if (propertyName == "MallKioskDemoCustomSettings")
+            {
+                // save to file as the content is too big to be saved as a string-like setting
+                StorageFile file = await ApplicationData.Current.RoamingFolder.CreateFileAsync(
+                    "MallKioskDemoCustomSettings.xml",
+                    CreationCollisionOption.ReplaceExisting);
+
+                using (Stream stream = await file.OpenStreamForWriteAsync())
+                {
+                    using (StreamWriter writer = new StreamWriter(stream))
+                    {
+                        await writer.WriteAsync(value.ToString());
+                    }
+                }
+            }
+            else
+            {
+                ApplicationData.Current.RoamingSettings.Values[propertyName] = value;
+            }
 
             instance.OnSettingsChanged();
             instance.OnPropertyChanged(propertyName);
@@ -93,7 +112,7 @@ namespace IntelligentKioskSample
             }
         }
 
-        private void LoadRoamingSettings()
+        private async void LoadRoamingSettings()
         {
             object value = ApplicationData.Current.RoamingSettings.Values["FaceApiKey"];
             if (value != null)
@@ -125,6 +144,12 @@ namespace IntelligentKioskSample
                 this.WorkspaceKey = value.ToString();
             }
 
+            value = ApplicationData.Current.RoamingSettings.Values["TextAnalyticsKey"];
+            if (value != null)
+            {
+                this.TextAnalyticsKey = value.ToString();
+            }
+
             value = ApplicationData.Current.RoamingSettings.Values["CameraName"];
             if (value != null)
             {
@@ -151,15 +176,26 @@ namespace IntelligentKioskSample
                 }
             }
 
-            value = ApplicationData.Current.RoamingSettings.Values["SaveUniqueFaceImages"];
-            if (value != null)
+            // load mall kiosk demo custom settings from file as the content is too big to be saved as a string-like setting
+            try
             {
-                bool booleanValue;
-                if (bool.TryParse(value.ToString(), out booleanValue))
+                using (Stream stream = await ApplicationData.Current.RoamingFolder.OpenStreamForReadAsync("MallKioskDemoCustomSettings.xml"))
                 {
-                    this.SaveUniqueFaceImages = booleanValue;
+                    using (StreamReader reader = new StreamReader(stream))
+                    {
+                        this.MallKioskDemoCustomSettings = await reader.ReadToEndAsync();
+                    }
                 }
             }
+            catch (Exception)
+            {
+                this.RestoreMallKioskSettingsToDefaultFile();
+            }
+        }
+
+        public void RestoreMallKioskSettingsToDefaultFile()
+        {
+            this.MallKioskDemoCustomSettings = File.ReadAllText("Views\\MallKioskDemoConfig\\MallKioskDemoSettings.xml");
         }
 
         public void RestoreAllSettings()
@@ -223,6 +259,28 @@ namespace IntelligentKioskSample
             }
         }
 
+        private string mallKioskDemoCustomSettings = string.Empty;
+        public string MallKioskDemoCustomSettings
+        {
+            get { return this.mallKioskDemoCustomSettings; }
+            set
+            {
+                this.mallKioskDemoCustomSettings = value;
+                this.OnSettingChanged("MallKioskDemoCustomSettings", value);
+            }
+        }
+
+        private string textAnalyticsKey = string.Empty;
+        public string TextAnalyticsKey
+        {
+            get { return textAnalyticsKey; }
+            set
+            {
+                this.textAnalyticsKey = value;
+                this.OnSettingChanged("TextAnalyticsKey", value);
+            }
+        }
+
         private string cameraName = string.Empty;
         public string CameraName
         {
@@ -253,17 +311,6 @@ namespace IntelligentKioskSample
             {
                 this.showDebugInfo = value;
                 this.OnSettingChanged("ShowDebugInfo", value);
-            }
-        }
-
-        private bool saveUniqueFaceImages = false;
-        public bool SaveUniqueFaceImages
-        {
-            get { return saveUniqueFaceImages; }
-            set
-            {
-                this.saveUniqueFaceImages = value;
-                this.OnSettingChanged("SaveUniqueFaceImages", value);
             }
         }
     }

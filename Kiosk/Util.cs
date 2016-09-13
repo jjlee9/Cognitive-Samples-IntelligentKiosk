@@ -51,7 +51,7 @@ using Windows.UI.Xaml.Media.Imaging;
 
 namespace IntelligentKioskSample
 {
-    internal class Util
+    internal static class Util
     {
         public static string CapitalizeString(string s)
         {
@@ -60,23 +60,28 @@ namespace IntelligentKioskSample
 
         internal static async Task GenericApiCallExceptionHandler(Exception ex, string errorTitle)
         {
+            string errorDetails = GetMessageFromException(ex);
+
+            await new MessageDialog(errorDetails, errorTitle).ShowAsync();
+        }
+
+        internal static string GetMessageFromException(Exception ex)
+        {
             string errorDetails = ex.Message;
 
             FaceAPIException faceApiException = ex as FaceAPIException;
-            if (faceApiException != null)
+            if (faceApiException?.ErrorMessage != null)
             {
                 errorDetails = faceApiException.ErrorMessage;
             }
-            else
+
+            Microsoft.ProjectOxford.Common.ClientException commonException = ex as Microsoft.ProjectOxford.Common.ClientException;
+            if (commonException?.Error?.Message != null)
             {
-                ClientException clientException = ex as ClientException;
-                if (clientException != null)
-                {
-                    errorDetails = clientException.Error.Message;
-                }
+                errorDetails = commonException.Error.Message;
             }
 
-            await new MessageDialog(errorDetails, errorTitle).ShowAsync();
+            return errorDetails;
         }
 
         internal static Face FindFaceClosestToRegion(IEnumerable<Face> faces, BitmapBounds region)
@@ -109,29 +114,31 @@ namespace IntelligentKioskSample
             return deviceInfo.OrderBy(d => d.Name).Select(d => d.Name);
         }
 
-        async private static Task CropBitmapAsync(Stream localFileStream, Rectangle rectangle, StorageFile resultFile)
+        async public static Task<ImageSource> GetCroppedBitmapAsync(Func<Task<Stream>> originalImgFile, Microsoft.ProjectOxford.Common.Rectangle rectangle)
         {
-            //Get pixels of the crop region
-            var pixels = await GetCroppedPixelsAsync(localFileStream.AsRandomAccessStream(), rectangle);
-
-            // Save result to new image
-            using (Stream resultStream = await resultFile.OpenStreamForWriteAsync())
+            try
             {
-                IRandomAccessStream randomAccessStream = resultStream.AsRandomAccessStream();
-                BitmapEncoder encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.JpegEncoderId, randomAccessStream);
-
-                encoder.SetPixelData(BitmapPixelFormat.Bgra8,
-                                        BitmapAlphaMode.Ignore,
-                                        (uint)rectangle.Width, (uint)rectangle.Height,
-                                        DisplayInformation.GetForCurrentView().LogicalDpi, DisplayInformation.GetForCurrentView().LogicalDpi, pixels);
-
-                await encoder.FlushAsync();
+                using (IRandomAccessStream stream = (await originalImgFile()).AsRandomAccessStream())
+                {
+                    return await GetCroppedBitmapAsync(stream, rectangle);
+                }
+            }
+            catch
+            {
+                // default to no image if we fail to crop the bitmap
+                return null;
             }
         }
 
-        async public static Task CropBitmapAsync(Func<Task<Stream>> localFile, Rectangle rectangle, StorageFile resultFile)
+        async public static Task<ImageSource> GetCroppedBitmapAsync(IRandomAccessStream stream, Microsoft.ProjectOxford.Common.Rectangle rectangle)
         {
-            await CropBitmapAsync(await localFile(), rectangle, resultFile);
+            var pixels = await GetCroppedPixelsAsync(stream, rectangle);
+
+            // Stream the bytes into a WriteableBitmap 
+            WriteableBitmap cropBmp = new WriteableBitmap(rectangle.Width, rectangle.Height);
+            cropBmp.FromByteArray(pixels);
+
+            return cropBmp;
         }
 
         async private static Task<byte[]> GetCroppedPixelsAsync(IRandomAccessStream stream, Rectangle rectangle)
@@ -158,6 +165,14 @@ namespace IntelligentKioskSample
                 ColorManagementMode.ColorManageToSRgb);
 
             return pix.DetachPixelData();
+        }
+
+        public static void AddRange<T>(this IList<T> list, IEnumerable<T> items)
+        {
+            foreach (var item in items)
+            {
+                list.Add(item);
+            }
         }
     }
 }
