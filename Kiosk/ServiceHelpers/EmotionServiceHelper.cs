@@ -32,12 +32,11 @@
 // 
 
 using Microsoft.ProjectOxford.Common;
+using Microsoft.ProjectOxford.Common.Contract;
 using Microsoft.ProjectOxford.Emotion;
-using Microsoft.ProjectOxford.Emotion.Contract;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace ServiceHelpers
@@ -119,17 +118,17 @@ namespace ServiceHelpers
             await RunTaskWithAutoRetryOnQuotaLimitExceededError<object>(async () => { await action(); return null; });
         }
 
-        public static async Task<Emotion[]> RecognizeAsync(Stream imageStream)
+        public static async Task<Emotion[]> RecognizeAsync(Func<Task<Stream>> imageStreamCallback)
         {
-            return await RunTaskWithAutoRetryOnQuotaLimitExceededError<Emotion[]>(() => emotionClient.RecognizeAsync(imageStream));
+            return await RunTaskWithAutoRetryOnQuotaLimitExceededError<Emotion[]>(async () => await emotionClient.RecognizeAsync(await imageStreamCallback()));
         }
 
         public static async Task<Emotion[]> RecognizeAsync(string url)
         {
-            return await RunTaskWithAutoRetryOnQuotaLimitExceededError<Emotion[]>(() => emotionClient.RecognizeAsync(url));
+            return await RunTaskWithAutoRetryOnQuotaLimitExceededError<Emotion[]>(async () => await emotionClient.RecognizeAsync(url));
         }
 
-        public static IEnumerable<EmotionData> ScoresToEmotionData(Scores scores)
+        public static IEnumerable<EmotionData> ScoresToEmotionData(EmotionScores scores)
         {
             List<EmotionData> result = new List<EmotionData>();
             result.Add(new EmotionData { EmotionName = "Anger", EmotionScore = scores.Anger });

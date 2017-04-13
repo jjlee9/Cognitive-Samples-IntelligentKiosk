@@ -87,6 +87,7 @@ namespace IntelligentKioskSample
                 {
                     EmotionServiceHelper.ApiKey = SettingsHelper.Instance.EmotionApiKey;
                     FaceServiceHelper.ApiKey = SettingsHelper.Instance.FaceApiKey;
+                    VisionServiceHelper.ApiKey = SettingsHelper.Instance.VisionApiKey;
                     BingSearchHelper.SearchApiKey = SettingsHelper.Instance.BingSearchApiKey;
                     BingSearchHelper.AutoSuggestionApiKey = SettingsHelper.Instance.BingAutoSuggestionApiKey;
                     TextAnalyticsHelper.ApiKey = SettingsHelper.Instance.TextAnalyticsKey;
@@ -98,6 +99,7 @@ namespace IntelligentKioskSample
                 // callbacks for core library
                 FaceServiceHelper.Throttled = () => ShowThrottlingToast("Face");
                 EmotionServiceHelper.Throttled = () => ShowThrottlingToast("Emotion");
+                VisionServiceHelper.Throttled = () => ShowThrottlingToast("Vision");
                 ErrorTrackingHelper.TrackException = (ex, msg) => LogException(ex, msg);
                 ErrorTrackingHelper.GenericApiCallExceptionHandler = Util.GenericApiCallExceptionHandler;
 

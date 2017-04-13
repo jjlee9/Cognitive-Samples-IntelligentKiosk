@@ -31,9 +31,10 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // 
 
-using Microsoft.ProjectOxford.Emotion.Contract;
+using Microsoft.ProjectOxford.Common.Contract;
 using Microsoft.ProjectOxford.Face;
 using Microsoft.ProjectOxford.Face.Contract;
+using Microsoft.ProjectOxford.Vision;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -44,7 +45,7 @@ namespace ServiceHelpers
 {
     public class ImageAnalyzer
     {
-        private static FaceAttributeType[] DefaultFaceAttributeTypes = new FaceAttributeType[] { FaceAttributeType.Age, FaceAttributeType.Gender };
+        private static FaceAttributeType[] DefaultFaceAttributeTypes = new FaceAttributeType[] { FaceAttributeType.Age, FaceAttributeType.Gender, FaceAttributeType.HeadPose };
 
         public event EventHandler FaceDetectionCompleted;
         public event EventHandler FaceRecognitionCompleted;
@@ -63,6 +64,8 @@ namespace ServiceHelpers
         public IEnumerable<IdentifiedPerson> IdentifiedPersons { get; set; }
 
         public IEnumerable<SimilarFaceMatch> SimilarFaceMatches { get; set; }
+
+        public Microsoft.ProjectOxford.Vision.Contract.AnalysisResult AnalysisResult { get; set; }
 
         // Default to no errors, since this could trigger a stream of popup errors since we might call this
         // for several images at once while auto-detecting the Bing Image Search results.
@@ -97,7 +100,7 @@ namespace ServiceHelpers
             this.DecodedImageWidth = width;
         }
 
-        public async Task DetectFacesAsync(bool detectFaceAttributes = false)
+        public async Task DetectFacesAsync(bool detectFaceAttributes = false, bool detectFaceLandmarks = false)
         {
             try
             {
@@ -106,15 +109,15 @@ namespace ServiceHelpers
                     this.DetectedFaces = await FaceServiceHelper.DetectAsync(
                         this.ImageUrl,
                         returnFaceId: true,
-                        returnFaceLandmarks: false,
+                        returnFaceLandmarks: detectFaceLandmarks,
                         returnFaceAttributes: detectFaceAttributes ? DefaultFaceAttributeTypes : null);
                 }
                 else if (this.GetImageStreamCallback != null)
                 {
                     this.DetectedFaces = await FaceServiceHelper.DetectAsync(
-                        await this.GetImageStreamCallback(),
+                        this.GetImageStreamCallback,
                         returnFaceId: true,
-                        returnFaceLandmarks: false,
+                        returnFaceLandmarks: detectFaceLandmarks,
                         returnFaceAttributes: detectFaceAttributes ? DefaultFaceAttributeTypes : null);
                 }
 
@@ -150,7 +153,7 @@ namespace ServiceHelpers
                 }
                 else if (this.GetImageStreamCallback != null)
                 {
-                    this.DetectedEmotion = await EmotionServiceHelper.RecognizeAsync(await this.GetImageStreamCallback());
+                    this.DetectedEmotion = await EmotionServiceHelper.RecognizeAsync(this.GetImageStreamCallback);
                 }
 
                 if (this.FilterOutSmallFaces)
@@ -172,6 +175,56 @@ namespace ServiceHelpers
             finally
             {
                 this.OnEmotionRecognitionCompleted();
+            }
+        }
+
+        public async Task DescribeAsync()
+        {
+            try
+            {
+                if (this.ImageUrl != null)
+                {
+                    this.AnalysisResult = await VisionServiceHelper.DescribeAsync(this.ImageUrl);
+                }
+                else if (this.GetImageStreamCallback != null)
+                {
+                    this.AnalysisResult = await VisionServiceHelper.DescribeAsync(this.GetImageStreamCallback);
+                }
+            }
+            catch (Exception e)
+            {
+                this.AnalysisResult = new Microsoft.ProjectOxford.Vision.Contract.AnalysisResult();
+
+                if (this.ShowDialogOnFaceApiErrors)
+                {
+                    await ErrorTrackingHelper.GenericApiCallExceptionHandler(e, "Vision API failed.");
+                }
+            }
+        }
+
+        public async Task IdentifyCelebrityAsync()
+        {
+            try
+            {
+                if (this.ImageUrl != null)
+                {
+                    this.AnalysisResult = await VisionServiceHelper.AnalyzeImageAsync(this.ImageUrl);
+                }
+                else if (this.GetImageStreamCallback != null)
+                {
+                    this.AnalysisResult = await VisionServiceHelper.AnalyzeImageAsync(this.GetImageStreamCallback, new VisualFeature[] { VisualFeature.Categories }, new string[] { "Celebrities" });
+                }
+            }
+            catch (Exception e)
+            {
+                ErrorTrackingHelper.TrackException(e, "Vision API AnalyzeImageAsync error");
+
+                this.AnalysisResult = new Microsoft.ProjectOxford.Vision.Contract.AnalysisResult();
+
+                if (this.ShowDialogOnFaceApiErrors)
+                {
+                    await ErrorTrackingHelper.GenericApiCallExceptionHandler(e, "Vision API failed.");
+                }
             }
         }
 
@@ -264,7 +317,7 @@ namespace ServiceHelpers
             {
                 try
                 {
-                    SimilarPersistedFace similarPersistedFace = await FaceListManager.FindSimilarPersistedFaceAsync(await this.GetImageStreamCallback(), detectedFace.FaceId, detectedFace.FaceRectangle);
+                    SimilarPersistedFace similarPersistedFace = await FaceListManager.FindSimilarPersistedFaceAsync(this.GetImageStreamCallback, detectedFace.FaceId, detectedFace);
                     if (similarPersistedFace != null)
                     {
                         result.Add(new SimilarFaceMatch { Face = detectedFace, SimilarPersistedFace = similarPersistedFace });
